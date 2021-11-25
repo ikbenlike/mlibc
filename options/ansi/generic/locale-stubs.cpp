@@ -8,6 +8,10 @@
 #include <mlibc/debug.hpp>
 #include <frg/optional.hpp>
 
+#ifdef __MLIBC_POSIX_OPTION
+#	include <mlibc/posix-locale.hpp>
+#endif
+
 namespace {
 	// Values of the C locale are defined by the C standard.
 	constexpr lconv c_lconv = {
@@ -76,9 +80,21 @@ void __mlibc_initLocale() {
 	mlibc::monetary_facet = &mlibc::c_locale;
 	mlibc::numeric_facet = &mlibc::c_locale;
 	mlibc::time_facet = &mlibc::c_locale;
+
+#ifdef __MLIBC_POSIX_OPTION
+	mlibc::initLanginfo();
+#endif
 }
 
 char *setlocale(int category, const char *name) {
+	// Our default C locale is the C locale.
+	if(name && !strlen(name))
+		name = "C";
+
+#ifdef __MLIBC_POSIX_OPTION
+	mlibc::set_langinfo(category, name);
+#endif
+
 	if(category == LC_ALL) {
 		// ´TODO: Implement correct return value when categories differ.
 		auto current_desc = mlibc::collate_facet;
@@ -87,24 +103,19 @@ char *setlocale(int category, const char *name) {
 		__ensure(current_desc == mlibc::numeric_facet);
 		__ensure(current_desc == mlibc::time_facet);
 
-		if(name) {
-			// Our default C locale is the C locale.
-			if(!strlen(name))
-				name = "C";
-
-			auto new_desc = mlibc::query_locale_description(name);
-			if(!new_desc) {
-				mlibc::infoLogger() << "mlibc: Locale " << name
-						<< " is not supported" << frg::endlog;
-				return nullptr;
-			}
-
-			mlibc::collate_facet = new_desc;
-			mlibc::ctype_facet = new_desc;
-			mlibc::monetary_facet = new_desc;
-			mlibc::numeric_facet = new_desc;
-			mlibc::time_facet = new_desc;
+		auto new_desc = mlibc::query_locale_description(name);
+		if(!new_desc) {
+			mlibc::infoLogger() << "mlibc: Locale " << name
+					<< " is not supported" << frg::endlog;
+			return nullptr;
 		}
+
+		mlibc::collate_facet = new_desc;
+		mlibc::ctype_facet = new_desc;
+		mlibc::monetary_facet = new_desc;
+		mlibc::numeric_facet = new_desc;
+		mlibc::time_facet = new_desc;
+
 		return const_cast<char *>(current_desc->name);
 	}else{
 		const mlibc::locale_description **facet_ptr;
