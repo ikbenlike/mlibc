@@ -41,7 +41,8 @@ posix_test_cases = [
 	'sigsuspend',
 	'sigaltstack',
 	'realpath',
-	'ffs'
+	'ffs',
+	'nl_langinfo'
 ]
 
 posix_fail_test_cases = [
