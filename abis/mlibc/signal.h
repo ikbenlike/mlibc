@@ -98,6 +98,7 @@ typedef struct __stack {
 #define SIGEV_NONE 1
 #define SIGEV_SIGNAL 2
 #define SIGEV_THREAD 3
+#define SIGEV_THREAD_ID 4 //linux specific
 
 #define SI_ASYNCNL (-60)
 #define SI_TKILL (-6)

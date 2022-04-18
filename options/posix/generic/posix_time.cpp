@@ -1,3 +1,4 @@
+#include <bits/ansi/clockid_t.h>
 #include <bits/posix/posix_time.h>
 #include <bits/ensure.h>
 #include <mlibc/posix-sysdeps.hpp>

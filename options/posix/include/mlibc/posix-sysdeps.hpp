@@ -37,6 +37,8 @@ int sys_futex_wake(int *pointer);
 [[noreturn]] void sys_exit(int status);
 [[noreturn, gnu::weak]] void sys_thread_exit();
 int sys_clock_get(int clock, time_t *secs, long *nanos);
+[[gnu::weak]] int sys_timer_create(clockid_t clockid, struct sigevent *__restrict sevp,
+		timer_t *__restrict timerid, bool sival_is_id);
 
 int sys_open(const char *pathname, int flags, int *fd);
 [[gnu::weak]] int sys_flock(int fd, int options);

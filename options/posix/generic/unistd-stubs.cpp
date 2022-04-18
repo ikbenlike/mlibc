@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <limits.h>
 #include <termios.h>
+#include <time.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 
 #include <bits/ensure.h>
@@ -18,6 +20,26 @@
 unsigned int alarm(unsigned int) {
 	__ensure(!"Not implemented");
 	__builtin_unreachable();
+}
+
+int timer_create(clockid_t clockid, struct sigevent *__restrict sevp,
+				 timer_t *__restrict timerid){
+	if(!mlibc::sys_timer_create){
+		MLIBC_MISSING_SYSDEP();
+		errno = ENOSYS;
+		return -1;
+	}
+	struct sigevent default_sig = {
+		.sigev_notify = SIGEV_SIGNAL,
+		.sigev_signo = SIGALRM,
+	};
+	struct sigevent *sig = (sevp == NULL) ? &default_sig : sevp;
+	int e = mlibc::sys_timer_create(clockid, sig, timerid, sevp == NULL);
+	if(e){
+		errno = e;
+		return -1;
+	}
+	return 0;
 }
 
 int chdir(const char *path) {
