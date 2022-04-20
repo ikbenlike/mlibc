@@ -74,6 +74,148 @@ int sys_timer_create(clockid_t clockid, struct sigevent *__restrict sevp,
 	return 0;
 }
 
+int sys_timer_delete(timer_t timerid){
+	SignalGuard sguard;
+
+	managarm::posix::TimerDeleteRequest<MemoryAllocator> req(getSysdepsAllocator());
+	req.set_timerid(timerid);
+
+	auto [offer, sendReq, recvResp] = exchangeMsgsSync(
+		getPosixLane(),
+		helix_ng::offer(
+			helix_ng::sendBragiHeadOnly(req, getSysdepsAllocator()),
+			helix_ng::recvInline()
+		)
+	);
+
+	HEL_CHECK(offer.error());
+	HEL_CHECK(sendReq.error());
+	HEL_CHECK(recvResp.error());
+
+	managarm::posix::SvrResponse<MemoryAllocator> resp(getSysdepsAllocator());
+	resp.ParseFromArray(recvResp.data(), recvResp.length());
+	if(resp.error() == managarm::posix::Errors::NO_SUCH_RESOURCE){
+		return EINVAL;
+	}
+	__ensure(resp.error() == managarm::posix::Errors::SUCCESS);
+	return 0;
+}
+
+int sys_timer_getoverrun(timer_t timerid, int *overrun){
+	SignalGuard sguard;
+
+	__ensure(overrun != NULL);
+
+	managarm::posix::TimerOverrunRequest<MemoryAllocator> req(getSysdepsAllocator());
+	req.set_timerid(timerid);
+
+	auto [offer, sendReq, recvResp] = exchangeMsgsSync(
+		getPosixLane(),
+		helix_ng::offer(
+			helix_ng::sendBragiHeadOnly(req, getSysdepsAllocator()),
+			helix_ng::recvInline()
+		)
+	);
+
+	HEL_CHECK(offer.error());
+	HEL_CHECK(sendReq.error());
+	HEL_CHECK(recvResp.error());
+
+	managarm::posix::SvrResponse<MemoryAllocator> resp(getSysdepsAllocator());
+	resp.ParseFromArray(recvResp.data(), recvResp.length());
+	if(resp.error() == managarm::posix::Errors::NO_SUCH_RESOURCE){
+		return EINVAL;
+	}
+	__ensure(resp.error() == managarm::posix::Errors::SUCCESS);
+	*overrun = resp.timer_overrun();
+	return 0;
+}
+
+int sys_timer_settime(timer_t timerid, int flags,
+		const struct itimerspec *__restrict new_value,
+		struct itimerspec *__restrict old_value){
+	SignalGuard sguard;
+
+	if(new_value == NULL){
+		return EFAULT;
+	}
+
+	managarm::posix::TimerSettimeRequest<MemoryAllocator> req(getSysdepsAllocator());
+	req.set_timerid(timerid);
+	req.set_flags(flags);
+	req.set_interval_sec(new_value->it_interval.tv_sec);
+	req.set_interval_nsec(new_value->it_interval.tv_nsec);
+	req.set_value_sec(new_value->it_value.tv_sec);
+	req.set_value_nsec(new_value->it_value.tv_nsec);
+
+	auto [offer, send_head, send_tail, recv_resp] =
+		exchangeMsgsSync(
+			getPosixLane(),
+			helix_ng::offer(
+				helix_ng::sendBragiHeadTail(req, getSysdepsAllocator()),
+				helix_ng::recvInline()
+			)
+		);
+
+	HEL_CHECK(offer.error());
+	HEL_CHECK(send_head.error());
+	HEL_CHECK(send_tail.error());
+	HEL_CHECK(recv_resp.error());
+
+	managarm::posix::SvrResponse<MemoryAllocator> resp(getSysdepsAllocator());
+	resp.ParseFromArray(recv_resp.data(), recv_resp.length());
+	if(resp.error() == managarm::posix::Errors::ILLEGAL_ARGUMENTS){
+		return EINVAL;
+	}
+
+	__ensure(resp.error() == managarm::posix::Errors::SUCCESS);
+
+	if(old_value != NULL){
+		old_value->it_interval.tv_sec = resp.timer_interval_sec();
+		old_value->it_interval.tv_nsec = resp.timer_interval_nsec();
+		old_value->it_value.tv_sec = resp.timer_value_sec();
+		old_value->it_value.tv_nsec = resp.timer_value_nsec();
+	}
+	return 0;
+}
+
+int sys_timer_gettime(timer_t timerid, struct itimerspec *curr_value){
+	SignalGuard sguard;
+
+	if(curr_value == NULL){
+		return EFAULT;
+	}
+
+	managarm::posix::TimerGettimeRequest<MemoryAllocator> req(getSysdepsAllocator());
+	req.set_timerid(timerid);
+
+	auto [offer, sendReq, recvResp] = exchangeMsgsSync(
+		getPosixLane(),
+		helix_ng::offer(
+			helix_ng::sendBragiHeadOnly(req, getSysdepsAllocator()),
+			helix_ng::recvInline()
+		)
+	);
+
+	HEL_CHECK(offer.error());
+	HEL_CHECK(sendReq.error());
+	HEL_CHECK(recvResp.error());
+
+	managarm::posix::SvrResponse<MemoryAllocator> resp(getSysdepsAllocator());
+	resp.ParseFromArray(recvResp.data(), recvResp.length());
+	if(resp.error() == managarm::posix::Errors::NO_SUCH_RESOURCE){
+		return EINVAL;
+	}
+
+	__ensure(resp.error() == managarm::posix::Errors::SUCCESS);
+
+	curr_value->it_interval.tv_sec = resp.timer_interval_sec();
+	curr_value->it_interval.tv_nsec = resp.timer_interval_nsec();
+	curr_value->it_value.tv_sec = resp.timer_value_sec();
+	curr_value->it_value.tv_nsec = resp.timer_value_nsec();
+	return 0;
+}
+
 int sys_clock_get(int clock, time_t *secs, long *nanos) {
 	// This implementation is inherently signal-safe.
 	if(clock == CLOCK_MONOTONIC) {
