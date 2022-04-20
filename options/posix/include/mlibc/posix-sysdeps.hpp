@@ -39,6 +39,12 @@ int sys_futex_wake(int *pointer);
 int sys_clock_get(int clock, time_t *secs, long *nanos);
 [[gnu::weak]] int sys_timer_create(clockid_t clockid, struct sigevent *__restrict sevp,
 		timer_t *__restrict timerid, bool sival_is_id);
+[[gnu::weak]] int sys_timer_delete(timer_t timerid);
+[[gnu::weak]] int sys_timer_getoverrun(timer_t timerid, int *overrun);
+[[gnu::weak]] int sys_timer_settime(timer_t timerid, int flags,
+		const struct itimerspec *__restrict new_value,
+		const struct itimerspec *__restrict old_value);
+[[gnu::weak]] int sys_timer_gettime(timer_t timerid, struct itimerspec *curr_value);
 
 int sys_open(const char *pathname, int flags, int *fd);
 [[gnu::weak]] int sys_flock(int fd, int options);

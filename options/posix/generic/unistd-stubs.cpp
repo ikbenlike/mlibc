@@ -42,6 +42,61 @@ int timer_create(clockid_t clockid, struct sigevent *__restrict sevp,
 	return 0;
 }
 
+int timer_delete(timer_t timerid){
+	if(!mlibc::sys_timer_delete){
+		MLIBC_MISSING_SYSDEP();
+		errno = ENOSYS;
+		return -1;
+	}
+	if(int e = mlibc::sys_timer_delete(timerid); e){
+		errno = e;
+		return -1;
+	}
+	return 0;
+}
+
+int timer_getoverrun(timer_t timerid){
+	if(!mlibc::sys_timer_getoverrun){
+		MLIBC_MISSING_SYSDEP();
+		errno = ENOSYS;
+		return -1;
+	}
+	int overrun = 0;
+	if(int e = mlibc::sys_timer_getoverrun(timerid, &overrun); e){
+		errno = e;
+		return -1;
+	}
+	return overrun;
+}
+
+int timer_settime(timer_t timerid, int flags,
+		const struct itimerspec *__restrict new_value,
+		struct itimerspec *__restrict old_value){
+	if(!mlibc::sys_timer_settime){
+		MLIBC_MISSING_SYSDEP();
+		errno = ENOSYS;
+		return -1;
+	}
+	if(int e = mlibc::sys_timer_settime(timerid, flags, new_value, old_value); e){
+		errno = e;
+		return -1;
+	}
+	return 0;
+}
+
+int timer_gettime(timer_t timerid, struct itimerspec *curr_value){
+	if(!mlibc::sys_timer_gettime){
+		MLIBC_MISSING_SYSDEP();
+		errno = ENOSYS;
+		return - 1;
+	}
+	if(int e = mlibc::sys_timer_gettime(timerid, curr_value); e){
+		errno = e;
+		return -1;
+	}
+	return 0;
+}
+
 int chdir(const char *path) {
 	if(!mlibc::sys_chdir) {
 		MLIBC_MISSING_SYSDEP();
